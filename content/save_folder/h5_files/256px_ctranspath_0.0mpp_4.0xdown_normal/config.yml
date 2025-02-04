@@ -1,0 +1,18 @@
+batch_size: 16
+patch_size: 256
+downscaling_factor: 4.0
+resolution_in_mpp: 0.0
+slide_path: ./content/slide_folder
+save_path: ./content/save_folder
+model_path: .cache/histogpt/ctranspath.pth
+file_extension: .ndpi
+save_patch_images: False
+save_tile_preview: False
+preview_size: 4096
+white_thresh: [170, 185, 175]
+black_thresh: [0, 0, 0]
+calc_thresh: [40, 40, 40]
+invalid_ratio_thresh: 0.3
+edge_threshold: 2
+split: [0, 1]
+exctraction_list: None

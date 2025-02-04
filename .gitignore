@@ -6,6 +6,9 @@ __pycache__/
 .env
 # C extensions
 *.so
+.cache
+*.pth
+*.ndpi
 
 # Distribution / packaging
 .Python

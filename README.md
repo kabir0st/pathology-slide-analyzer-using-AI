@@ -70,7 +70,7 @@ After downloading the model weight, we can generate pathology reports from image
 import h5py
 from transformers import BioGptTokenizer
 
-PATH = '/content/histogpt-1b-6k-pruned.pth?download=true'
+PATH = './content/histogpt-1b-6k-pruned.pth?download=true'
 state_dict = torch.load(PATH, map_location=device)
 histogpt.load_state_dict(state_dict, strict=True)
 

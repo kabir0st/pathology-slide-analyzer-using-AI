@@ -3,21 +3,28 @@ HistoGPT Inference Helper Functions
 Author: Manuel Tran / Helmholtz Munich
 """
 
-import h5py
-import openai
 import random
 import time
+
+import h5py
+import openai
 import torch
 import torch.nn.functional as F
-
 from tqdm import tqdm
-from transformers import top_k_top_p_filtering, PreTrainedTokenizer
+from transformers import (LogitsProcessorList, PreTrainedTokenizer,
+                          TopKLogitsWarper, TopPLogitsWarper)
+
 from ..clam.wsi_core.WholeSlideImage import WholeSlideImage
 
 
-def generate(
-    model, prompt, image, length=256, top_k=40, top_p=0.95, temp=0.7, device='cuda'
-):
+def generate(model,
+             prompt,
+             image,
+             length=256,
+             top_k=40,
+             top_p=0.95,
+             temp=0.7,
+             device='cuda'):
     """  
     autoregressive generation of reports using top-k, top-p, and temperature sampling
     """
@@ -38,8 +45,16 @@ def generate(
                 logits = logits[:, -1, :] / temp
 
             #logits[:, mask] = float('-inf')
-            logits = top_k_top_p_filtering(logits=logits, top_k=top_k, top_p=top_p)
+            # Apply top-k and top-p filtering via logits warpers
+            logits_warper = LogitsProcessorList(
+                [TopKLogitsWarper(top_k=top_k),
+                 TopPLogitsWarper(top_p=top_p)])
 
+            # Apply the warpers to modify logits (input_ids=None if not needed)
+            logits = logits_warper(None, logits)
+
+            # Compute probabilities (unchanged)
+            probs = F.softmax(logits, dim=-1)
             probs = F.softmax(logits, dim=-1)
             probs = probs.squeeze(0)
 
@@ -77,7 +92,10 @@ def chat_gpt(prompt, temperature, top_p):
         top_p=top_p,
         n=1,
     )
-    return [response.choices[i].message.content for i in range(len(response.choices))]
+    return [
+        response.choices[i].message.content
+        for i in range(len(response.choices))
+    ]
 
 
 def api_call(prompt, retries, temperature, top_p):
@@ -109,20 +127,19 @@ def ensemble_refinement(
     retries: int = 10,
 ):
     if instruction == None:
-        instruction = ("Summarize the following text. Be as accurate as possible!")
+        instruction = (
+            "Summarize the following text. Be as accurate as possible!")
 
     outputs = []
     for _ in tqdm(range(num_samples)):
-        output = generate(
-            model=model,
-            prompt=prompt,
-            image=image,
-            length=length,
-            top_k=top_k,
-            top_p=top_p,
-            temp=temp,
-            device=device
-        )
+        output = generate(model=model,
+                          prompt=prompt,
+                          image=image,
+                          length=length,
+                          top_k=top_k,
+                          top_p=top_p,
+                          temp=temp,
+                          device=device)
         outputs.append(output)
     outputs = torch.concat(outputs, 1)
 
@@ -130,9 +147,14 @@ def ensemble_refinement(
     return api_call(prompt, retries, gpt_temp, gpt_top_p)[0]
 
 
-def visualize(
-    model, tokenizer, source, target, feats_path, slide_path, save_path, device='cuda'
-):
+def visualize(model,
+              tokenizer,
+              source,
+              target,
+              feats_path,
+              slide_path,
+              save_path,
+              device='cuda'):
     """
     visualize target words or phrases from the source report as features in the input
     """
@@ -162,7 +184,8 @@ def visualize(
 
     attention = model.histogpt.layers[-1][0].attn.attn[0]
     attention = attention[:, token_positions, :].clamp(min=0).mean(dim=(0, 1))
-    attention = (attention - attention.min()) / (attention.max() - attention.min())
+    attention = (attention - attention.min()) / (attention.max() -
+                                                 attention.min())
 
     perceive = model.histogpt.perceiver_resampler(input_tensor)
     gradient = torch.zeros(640, features.shape[0])
@@ -186,21 +209,18 @@ def visualize(
     wsi = wsi_object.getOpenSlide()
     vis_level = wsi.get_best_level_for_downsample(64)
     best_level = wsi_object.wsi.get_best_level_for_downsample(64)
-    wsi_object.segmentTissue(
-        best_level, filter_params={
-            'a_t': 100,
-            'a_h': 16,
-            'max_n_holes': 10
-        }
-    )
-    viz = wsi_object.visHeatmap(
-        scores=scores,
-        coords=coordinates * 4,
-        vis_level=vis_level,
-        patch_size=(1024, 1024),
-        overlap=0.0,
-        alpha=0.6,
-        segment=False,
-        cmap='Spectral_r'
-    )
+    wsi_object.segmentTissue(best_level,
+                             filter_params={
+                                 'a_t': 100,
+                                 'a_h': 16,
+                                 'max_n_holes': 10
+                             })
+    viz = wsi_object.visHeatmap(scores=scores,
+                                coords=coordinates * 4,
+                                vis_level=vis_level,
+                                patch_size=(1024, 1024),
+                                overlap=0.0,
+                                alpha=0.6,
+                                segment=False,
+                                cmap='Spectral_r')
     viz[1].save(save_path)
