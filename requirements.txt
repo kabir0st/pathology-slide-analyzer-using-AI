@@ -1,0 +1,4 @@
+openslide-python==1.4.1
+pillow==11.1.0
+openslide-python==1.4.1
+pillow==11.1.0
