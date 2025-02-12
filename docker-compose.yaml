@@ -1,0 +1,14 @@
+services:
+  histo:
+      build: .
+      ports:
+        - '8235:8235'
+      volumes:
+        - .:/app
+      command: streamlit run interface.py --server.port=8235
+      healthcheck:
+        test: ["CMD", "curl", "--fail", "http://localhost:8235"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 10s

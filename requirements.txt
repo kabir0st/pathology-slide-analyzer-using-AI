@@ -50,6 +50,7 @@ networkx==3.3
 numpy==2.1.2
 openai==1.61.0
 opencv-python==4.11.0.86
+openslide-bin==4.0.0.6
 openslide-python==1.4.1
 packaging==24.2
 pandas==2.2.3
@@ -65,7 +66,6 @@ pydeck==0.9.1
 Pygments==2.19.1
 pyparsing==3.2.1
 python-dateutil==2.9.0.post0
-pytorch-triton-rocm==3.2.0
 pytz==2025.1
 PyYAML==6.0.2
 referencing==0.36.2
